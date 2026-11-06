@@ -1,5 +1,7 @@
 # Unsubscribe Collector for Fastmail
 
+![Reviewing newsletter senders with keyboard shortcuts and bulk unsubscribe actions](docs/images/review.png)
+
 A local Chrome extension that collects unsubscribe links while you read emails in your Fastmail Inbox or All Mail. Keep the senders you like, then open the rest in one new window, one tab per sender.
 
 ## Install
