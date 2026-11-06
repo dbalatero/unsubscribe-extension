@@ -4,7 +4,7 @@ A local Chrome extension that collects unsubscribe links while you read emails i
 
 ## Install
 
-The extension is already built in `dist/` in this checkout. To build it again:
+Build the extension into `dist/` (generated files are not committed, so fresh checkouts need this step):
 
 ```sh
 devenv shell
@@ -13,6 +13,21 @@ npm run build
 ```
 
 If `devenv` is not installed, start it with `nix run nixpkgs#devenv -- shell`. Node.js 22.12+ also works without devenv. The checked-in `devenv.lock` pins the Nix environment; `package-lock.json` pins JavaScript dependencies.
+
+### Automatic shell setup with direnv
+
+Install `pkgs.devenv` in your system Nix configuration or Home Manager's `home.packages`, rebuild, and ensure `devenv` is on your shell's `PATH`. With direnv hooked into your shell, run `direnv allow` in this repository. Node and npm will then load automatically when you enter it.
+
+The repository's `.envrc` loads the integration explicitly:
+
+```sh
+eval "$(devenv direnvrc)"
+use devenv
+```
+
+`use_devenv: command not found` means the helper was not loaded; installing the binary alone does not define that shell function. After changing `.envrc`, run `direnv allow` again. Verify activation with `direnv exec . node --version`.
+
+### Load in Chrome
 
 1. Open `chrome://extensions` in Chrome.
 2. Turn on **Developer mode**.
@@ -71,6 +86,10 @@ npm run test:e2e              # build and exercise the actual extension in Chrom
 
 `npm run test:watch` runs unit tests while editing. Unit tests cover every TypeScript source file, including extension entry points, and enforce 100% statements, branches, functions, and lines.
 
-The browser test uses a fresh temporary profile and locally intercepts mail pages and serves synthetic unsubscribe destinations on localhost. It does not connect to your mailbox or any real unsubscribe endpoint. It verifies capture from the redacted fixture, SPA navigation, keep decisions, deduplication, one-window bulk opening, and persistence across browser restarts. Its screenshot is saved to `test-results/review.png`.
+The browser test uses a fresh temporary profile, intercepts mail pages, and serves synthetic unsubscribe destinations on localhost. It does not connect to your mailbox or any real unsubscribe endpoint. It verifies capture from the redacted fixture, SPA navigation, keep decisions, deduplication, one-window bulk opening, persistence across browser restarts, badge updates, and reminder alarm creation. OS notification delivery is stubbed to avoid alerting you during tests; reminder timing and delivery markers are covered by unit tests. Its screenshot is saved to `test-results/review.png`.
+
+Use Playwright's bundled Chromium for extension tests. If you set `PLAYWRIGHT_BROWSERS_PATH`, use the same value for both browser installation and test execution. The local unsubscribe server is intentional: the initial navigation of a tab created through `chrome.windows.create` can race Playwright's request interception.
 
 The production extension uses TypeScript and Vite without a UI framework. A single background service worker serializes all writes, so multiple Fastmail tabs cannot overwrite one another's captures. Chrome messaging accepts capture requests only from top-level Inbox message pages; review actions come only from the extension's own page. The content script is bundled separately as an IIFE for Chrome's isolated world.
+
+Chrome's `MessageSender.url` can retain the original document URL after Fastmail navigates with `history.pushState`. Capture authorization therefore checks Chrome's sender origin and top-frame identity together with the current Inbox route supplied by the isolated content script. Keep the SPA browser regression test when changing this code.
