@@ -1,0 +1,52 @@
+import { afterEach, expect, it, vi } from 'vitest';
+import { collect } from '../src/collector';
+import { card, pageUrl } from './fixtures';
+
+afterEach(() => { vi.useRealTimers(); document.body.replaceChildren(); });
+it('captures initial and dynamically inserted messages, deduplicates, and notices SPA navigation', async () => {
+  vi.useFakeTimers();
+  let url = 'https://app.fastmail.com/mail/Inbox';
+  document.body.innerHTML = card();
+  const save = vi.fn(async () => {});
+  const stop = collect(document, () => url, save, vi.fn());
+  expect(save).not.toHaveBeenCalled();
+  url = pageUrl;
+  await vi.advanceTimersByTimeAsync(2000);
+  expect(save).toHaveBeenCalledTimes(1);
+  await vi.advanceTimersByTimeAsync(2000);
+  expect(save).toHaveBeenCalledTimes(1);
+  document.body.innerHTML = card('<a href="https://second.test/unsubscribe">Unsubscribe</a>');
+  await vi.advanceTimersByTimeAsync(250);
+  expect(save).toHaveBeenCalledTimes(2);
+  stop(); stop();
+  document.body.innerHTML = card('<a href="https://third.test/unsubscribe">Unsubscribe</a>');
+  await vi.advanceTimersByTimeAsync(5000);
+  expect(save).toHaveBeenCalledTimes(2);
+});
+it('does not resend in-flight captures, reports failures, and retries', async () => {
+  vi.useFakeTimers();
+  document.body.innerHTML = card();
+  let reject!: (error: unknown) => void;
+  const save = vi.fn().mockImplementationOnce(() => new Promise<void>((_, no) => { reject = no; })).mockResolvedValue(undefined);
+  const report = vi.fn();
+  const stop = collect(document, () => pageUrl, save, report);
+  await vi.advanceTimersByTimeAsync(2000);
+  expect(save).toHaveBeenCalledTimes(1);
+  reject(new Error('Offline'));
+  await vi.advanceTimersByTimeAsync(2000);
+  expect(report).toHaveBeenCalledOnce();
+  expect(save).toHaveBeenCalledTimes(2);
+  stop();
+});
+it('debounces body mutations and cancels scheduled scans when stopped', async () => {
+  vi.useFakeTimers();
+  const save = vi.fn(async () => {});
+  const stop = collect(document, () => pageUrl, save, vi.fn());
+  document.body.innerHTML = card();
+  await Promise.resolve();
+  document.body.setAttribute('title', 'changed');
+  await Promise.resolve();
+  stop();
+  await vi.advanceTimersByTimeAsync(250);
+  expect(save).not.toHaveBeenCalled();
+});
