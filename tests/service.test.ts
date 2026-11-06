@@ -71,7 +71,9 @@ it('rejects malformed requests and corrupt data without overwriting it', async (
 });
 it('only accepts capture from the Inbox top frame and review actions from the extension UI', () => {
   const ui = 'chrome-extension://test/index.html';
-  expect(authorized({ type: 'capture' }, { url: pageUrl, frameId: 0 }, ui)).toBe(true);
+  expect(authorized({ type: 'capture', pageUrl }, { url: 'https://app.fastmail.com/mail/Inbox', origin: 'https://app.fastmail.com', frameId: 0 }, ui)).toBe(true);
+  expect(authorized({ type: 'capture', pageUrl: 'https://app.fastmail.com/mail/Sent/message' }, { origin: 'https://app.fastmail.com', frameId: 0 }, ui)).toBe(false);
+  expect(authorized({ type: 'capture', pageUrl }, { origin: 'https://evil.test', frameId: 0 }, ui)).toBe(false);
   expect(authorized({ type: 'list' }, { url: ui }, ui)).toBe(true);
   for (const [request, sender] of ([[null, {}], [{ type: 'capture' }, {}], [{ type: 'capture' }, { frameId: 0 }], [{ type: 'capture' }, { url: pageUrl, frameId: 1 }], [{ type: 'open' }, { url: pageUrl }], [{ type: 'open' }, { url: 'https://evil.test' }]] as [unknown, chrome.runtime.MessageSender][])) expect(authorized(request, sender!, ui)).toBe(false);
 });

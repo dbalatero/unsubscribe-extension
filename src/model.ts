@@ -10,7 +10,7 @@ export interface Entry extends Capture {
   capturedAt: string;
 }
 export type Request =
-  | { type: 'capture'; capture: Capture }
+  | { type: 'capture'; capture: Capture; pageUrl: string }
   | { type: 'list' }
   | { type: 'status'; key: string; status: Status }
   | { type: 'open' };

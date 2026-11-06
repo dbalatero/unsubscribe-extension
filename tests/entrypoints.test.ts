@@ -15,8 +15,8 @@ it('wires the background worker to Chrome storage and windows, rejecting foreign
   const respond = vi.fn();
   expect(listener({ type: 'open' }, { url: 'https://other.test' }, respond)).toBe(false);
   expect(respond).toHaveBeenCalledWith({ ok: false, error: 'This request is not allowed.' });
-  const call = (request: unknown, sender = { url: 'chrome-extension://test/index.html', frameId: 0 }) => new Promise(resolve => { expect(listener(request, sender, resolve)).toBe(true); });
-  await call({ type: 'capture', capture }, { url: pageUrl, frameId: 0 });
+  const call = (request: unknown, sender: chrome.runtime.MessageSender = { url: 'chrome-extension://test/index.html', frameId: 0 }) => new Promise(resolve => { expect(listener(request, sender, resolve)).toBe(true); });
+  await call({ type: 'capture', capture, pageUrl }, { url: pageUrl, origin: 'https://app.fastmail.com', frameId: 0 });
   expect(get).toHaveBeenCalledWith(STORAGE_KEY);
   expect(set).toHaveBeenCalled();
   await call({ type: 'open' });
@@ -34,7 +34,7 @@ it('wires content capture, failed replies, warnings and cleanup', async () => {
   expect(doc).toBe(document);
   expect(getUrl()).toBe(location.href);
   await save(capture);
-  expect(sendMessage).toHaveBeenCalledWith({ type: 'capture', capture });
+  expect(sendMessage).toHaveBeenCalledWith({ type: 'capture', capture, pageUrl: location.href });
   await expect(save(capture)).rejects.toThrow('Cannot save');
   report();
   expect(warn).toHaveBeenCalled();

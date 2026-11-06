@@ -66,6 +66,9 @@ export function createService(store: Store) {
 
 export function authorized(input: unknown, sender: chrome.runtime.MessageSender, extensionUrl: string): boolean {
   if (!input || typeof input !== 'object') return false;
-  if ((input as Request).type === 'capture') return sender.frameId === 0 && isInboxMessage(sender.url || '');
+  const request = input as Request;
+  // Chrome's sender.url can retain the document's original URL after pushState.
+  // The isolated content script supplies its current route; Chrome supplies its origin.
+  if (request.type === 'capture') return sender.frameId === 0 && sender.origin === 'https://app.fastmail.com' && isInboxMessage(request.pageUrl);
   return sender.url === extensionUrl;
 }
