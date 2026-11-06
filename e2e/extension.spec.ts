@@ -36,6 +36,11 @@ test('built extension captures scoped mail, remembers keep decisions, and opens 
     });
     const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
     const extensionId = new URL(worker.url()).host;
+    // Exercise real alarms/badges, but do not show OS notifications during tests.
+    await worker.evaluate(() => {
+      chrome.notifications.create = (async () => 'unsubscribe-review') as typeof chrome.notifications.create;
+    });
+    await expect.poll(() => worker.evaluate(async () => (await chrome.alarms.get('monday-review'))?.name)).toBe('monday-review');
     const review = await context.newPage();
     await review.goto(`chrome-extension://${extensionId}/index.html`);
     await expect(review.getByRole('button', { name: 'To review (0)' })).toBeVisible();
@@ -49,13 +54,16 @@ test('built extension captures scoped mail, remembers keep decisions, and opens 
     await mail.evaluate(() => history.pushState({}, '', '/mail/Inbox/first?u=test-account'));
     await expect(review.getByRole('button', { name: 'To review (1)' })).toBeVisible();
     await expect(review.getByRole('heading', { name: 'Example Newsletter' })).toBeVisible();
+    await expect.poll(() => worker.evaluate(() => chrome.action.getBadgeText({}))).toBe('1');
     await review.getByRole('button', { name: 'Keep', exact: true }).click();
     await expect(review.getByRole('button', { name: 'Kept (1)' })).toBeVisible();
+    await expect.poll(() => worker.evaluate(() => chrome.action.getBadgeText({}))).toBe('');
     await mail.reload();
     await mail.goto('https://app.fastmail.com/mail/Inbox/second');
     await expect(review.getByRole('heading', { name: 'Second Newsletter' })).toBeVisible();
     await mail.goto('https://app.fastmail.com/mail/Inbox/third');
     await expect(review.getByRole('button', { name: 'To review (2)' })).toBeVisible();
+    await expect.poll(() => worker.evaluate(() => chrome.action.getBadgeText({}))).toBe('2');
     await review.screenshot({ path: 'test-results/review.png', fullPage: true });
     const before = await worker.evaluate(async () => (await chrome.windows.getAll()).map(window => window.id));
     await review.getByRole('button', { name: 'Open all 2 unsubscribe pages' }).click();
@@ -67,6 +75,7 @@ test('built extension captures scoped mail, remembers keep decisions, and opens 
     expect([...hits].some(url => url.startsWith('/second/unsubscribe/'))).toBe(true);
     expect([...hits].some(url => url.startsWith('/third/unsubscribe/'))).toBe(true);
     await expect(review.getByRole('button', { name: 'Opened (2)' })).toBeVisible();
+    await expect.poll(() => worker.evaluate(() => chrome.action.getBadgeText({}))).toBe('');
     await expect(review.getByRole('button', { name: 'To review (0)' })).toBeVisible();
     await review.getByRole('button', { name: 'Kept (1)' }).click();
     await expect(review.getByRole('heading', { name: 'Example Newsletter' })).toBeVisible();

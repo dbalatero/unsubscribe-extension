@@ -1,15 +1,37 @@
 {
   "manifest_version": 3,
   "name": "Unsubscribe Collector for Fastmail",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Collect unsubscribe links as you read your Fastmail Inbox, keep favorites, and review the rest together.",
-  "permissions": ["storage"],
-  "background": { "service_worker": "background.js", "type": "module" },
-  "action": { "default_title": "Review unsubscribe links", "default_popup": "index.html" },
+  "permissions": [
+    "storage",
+    "alarms",
+    "notifications"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Review unsubscribe links",
+    "default_popup": "index.html",
+    "default_icon": {
+      "128": "icon.png"
+    }
+  },
   "options_page": "index.html",
-  "content_scripts": [{
-    "matches": ["https://app.fastmail.com/*"],
-    "js": ["content.js"],
-    "run_at": "document_idle"
-  }]
+  "content_scripts": [
+    {
+      "matches": [
+        "https://app.fastmail.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "128": "icon.png"
+  }
 }

@@ -2,8 +2,10 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { pageUrl, capture, entry } from './fixtures';
 import { STORAGE_KEY } from '../src/service';
 
-afterEach(() => { vi.unstubAllGlobals(); vi.resetModules(); vi.doUnmock('../src/collector'); vi.doUnmock('../src/ui'); });
+afterEach(() => { vi.unstubAllGlobals(); vi.resetModules(); vi.doUnmock('../src/collector'); vi.doUnmock('../src/ui'); vi.doUnmock('../src/reminders'); });
 it('wires the background worker to Chrome storage and windows, rejecting foreign callers', async () => {
+  const installReminders = vi.fn();
+  vi.doMock('../src/reminders', () => ({ installReminders }));
   const addListener = vi.fn();
   let data: unknown = undefined;
   const get = vi.fn(async () => ({ [STORAGE_KEY]: structuredClone(data) }));
@@ -11,6 +13,7 @@ it('wires the background worker to Chrome storage and windows, rejecting foreign
   const create = vi.fn(async () => ({}));
   vi.stubGlobal('chrome', { runtime: { onMessage: { addListener }, getURL: () => 'chrome-extension://test/index.html' }, storage: { local: { get, set } }, windows: { create } });
   await import('../src/background');
+  expect(await installReminders.mock.calls[0][0]()).toEqual({ ok: true, entries: [] });
   const listener = addListener.mock.calls[0][0];
   const respond = vi.fn();
   expect(listener({ type: 'open' }, { url: 'https://other.test' }, respond)).toBe(false);

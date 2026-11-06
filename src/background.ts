@@ -1,3 +1,4 @@
+import { installReminders } from './reminders';
 import { authorized, createService, STORAGE_KEY } from './service';
 
 const handle = createService({
@@ -13,3 +14,5 @@ chrome.runtime.onMessage.addListener((request: unknown, sender, respond) => {
   void handle(request).then(respond);
   return true;
 });
+
+installReminders(() => handle({ type: 'list' }));

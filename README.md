@@ -25,6 +25,7 @@ After rebuilding, click the extension's **Reload** button on `chrome://extension
 ## Use
 
 - Read emails at `https://app.fastmail.com/mail/Inbox/<message-id>`. Expanded messages with an unsubscribe link are captured automatically, including navigation within Fastmail without a full page reload.
+- The extension icon shows the number of senders waiting for review; the badge disappears when there are none. Pin it to the toolbar to keep the count visible.
 - Click the extension icon to review captured senders. You can also use the extension's **Options** page for a larger view.
 - Click **Keep** for senders you want. They disappear from the review list, remain in **Kept**, and are never recaptured automatically.
 - Click **Open all … unsubscribe pages** to open the remaining senders in one new window. Finish each site's unsubscribe flow yourself.
@@ -32,6 +33,16 @@ After rebuilding, click the extension's **Reload** button on `chrome://extension
 - Clicking an individual destination link opens just that page without changing its status.
 
 Deduplication uses the exact, case-insensitive sender domain, falling back to the normalized sender name when no email address is exposed. Subdomains are distinct. Different newsletters sharing one sender domain count as the same sender. The database is shared across Fastmail accounts in the same Chrome profile.
+
+## Weekly reminder
+
+A Chrome notification reminds you once per week, starting **Monday at 9 a.m. in your computer's local timezone**. If Chrome is closed or your computer is asleep then, it catches up when Chrome next starts or the missed alarm fires on wake. It checks the most recent Monday, so several missed weeks produce one reminder, not a backlog.
+
+The delivery marker is saved locally and survives browser restarts and extension updates. An empty queue produces no reminder; adding pending senders later can trigger that week's reminder if it has not been delivered. A notification click opens the review page. Keeping or opening all pending senders clears the badge and any outstanding reminder.
+
+Chrome notifications must be enabled in your operating system; Focus/Do Not Disturb can suppress them. The extension records successful creation of a notification, not whether you read it. It uses the `alarms` and `notifications` permissions; neither grants access to additional websites.
+
+After updating, reload the extension at `chrome://extensions` and accept the additional permissions if Chrome prompts you.
 
 ## Access and privacy
 
