@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "release": "node --experimental-strip-types scripts/release.ts",
     "build": "tsc --noEmit && vite build && vite build --config vite.content.config.ts",
     "test": "vitest run --coverage",
     "test:watch": "vitest",

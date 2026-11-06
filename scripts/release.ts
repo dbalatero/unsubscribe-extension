@@ -1,0 +1,26 @@
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+const root = fileURLToPath(new URL('../', import.meta.url));
+const output = (command: string, args: string[]) => execFileSync(command, args, { cwd: root, encoding: 'utf8' }).trim();
+const run = (command: string, args: string[], cwd = root) => execFileSync(command, args, { cwd, stdio: 'inherit' });
+const version = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
+const manifest = JSON.parse(readFileSync(new URL('../public/manifest.json', import.meta.url), 'utf8'));
+if (version !== manifest.version) throw new Error('package.json and public/manifest.json versions must match.');
+if (output('git', ['status', '--porcelain'])) throw new Error('Commit your changes before releasing.');
+run('gh', ['auth', 'status']);
+const branch = output('git', ['symbolic-ref', '--short', 'HEAD']);
+const commit = output('git', ['rev-parse', 'HEAD']);
+const remoteHead = output('git', ['ls-remote', 'origin', `refs/heads/${branch}`]).split(/\s/)[0];
+if (remoteHead !== commit) throw new Error('Push this branch to origin before releasing.');
+const tag = `v${version}`;
+if (output('git', ['ls-remote', 'origin', `refs/tags/${tag}`])) throw new Error(`${tag} already exists. Bump the version before releasing again.`);
+const remote = output('git', ['remote', 'get-url', 'origin']);
+const repo = output('gh', ['repo', 'view', remote, '--json', 'nameWithOwner', '--jq', '.nameWithOwner']);
+run('npm', ['run', 'check']);
+const archive = fileURLToPath(new URL(`../releases/unsubscribe-extension-${version}.zip`, import.meta.url));
+mkdirSync(new URL('../releases/', import.meta.url), { recursive: true });
+rmSync(archive, { force: true });
+run('zip', ['-r', archive, '.'], fileURLToPath(new URL('../dist/', import.meta.url)));
+run('gh', ['release', 'create', tag, archive, '--repo', repo, '--target', commit, '--title', `Unsubscribe Collector ${tag}`, '--generate-notes']);

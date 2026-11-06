@@ -4,6 +4,23 @@
 
 A local Chrome extension that collects unsubscribe links while you read emails in your Fastmail Inbox or All Mail. Keep the senders you like, then open the rest in one new window, one tab per sender.
 
+## GitHub releases
+
+To publish the current version as a downloadable extension ZIP:
+
+```sh
+devenv shell
+gh auth login
+git push origin HEAD
+npm run release
+```
+
+Devenv supplies `gh` and `zip`. The script requires a clean working tree, matching versions in `package.json` and `public/manifest.json`, and the current branch pushed to `origin`. It runs the coverage checks and production build, packages only `dist/`, then creates a GitHub release with generated notes and a `v<version>` tag targeting the exact commit. Archives are saved in the ignored `releases/` directory. Existing version tags are never overwritten.
+
+For subsequent releases, update both version fields (and the lockfile with `npm install --package-lock-only`), commit, push, then run `npm run release` again.
+
+Download the ZIP from [Releases](https://github.com/dbalatero/unsubscribe-extension/releases), extract it, and use Chrome's **Load unpacked** on that folder. This publishes to GitHub; Chrome Web Store distribution is separate.
+
 ## Install
 
 Build the extension into `dist/` (generated files are not committed, so fresh checkouts need this step):

@@ -1,5 +1,6 @@
 { pkgs, ... }:
 {
+  packages = [ pkgs.gh pkgs.zip ];
   languages.javascript = {
     enable = true;
     package = pkgs.nodejs_22;
