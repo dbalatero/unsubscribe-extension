@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isSupportedMessage, webUrl, senderKey, isCapture, isEntry, isStatus } from '../src/model';
+import { isSupportedMessage, webUrl, senderKey, isCapture, isEntry, isStatus, sourceEmailUrl } from '../src/model';
 
 import { capture, entry } from './fixtures';
 
@@ -25,4 +25,10 @@ it('validates all data crossing extension boundaries', () => {
   for (const value of [null, { ...entry, key: 'bad' }, { ...entry, status: 'bad' }, { ...entry, capturedAt: 3 }, { ...entry, capturedAt: 'bad' }]) expect(isEntry(value)).toBe(false);
   for (const status of ['pending', 'kept', 'opened']) expect(isStatus(status)).toBe(true);
   expect(isStatus('bad')).toBe(false);
+});
+
+it('reads legacy data and validates optional source URLs and review markers', () => {
+  expect(isEntry({ ...entry, sourceUrl: 'https://app.fastmail.com/mail/Archive/message?u=test', toUnsubscribe: true })).toBe(true);
+  for (const extra of [{ sourceUrl: 3 }, { sourceUrl: 'https://evil.test' }, { toUnsubscribe: 'true' }]) expect(isEntry({ ...entry, ...extra })).toBe(false);
+  expect(sourceEmailUrl('https://app.fastmail.com/mail/Inbox/message?token=secret#fragment')).toBe('https://app.fastmail.com/mail/Inbox/message');
 });

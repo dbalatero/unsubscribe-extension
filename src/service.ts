@@ -1,4 +1,4 @@
-import { type Entry, type Reply, type Request, isCapture, isEntry, isSupportedMessage, isStatus, senderKey } from './model';
+import { type Entry, type Reply, type Request, isCapture, isEntry, isSupportedMessage, isStatus, senderKey, sourceEmailUrl } from './model';
 
 export const STORAGE_KEY = 'senders.v1';
 export interface Store {
@@ -21,11 +21,11 @@ export function createService(store: Store) {
     switch (request.type) {
       case 'list': break;
       case 'capture': {
-        if (!isCapture(request.capture)) throw new Error('Invalid sender or unsubscribe URL.');
+        if (!isCapture(request.capture) || !isSupportedMessage(request.pageUrl)) throw new Error('Invalid sender or unsubscribe URL.');
         const { name, email, url } = request.capture;
         const key = senderKey(email, name);
         if (!entries.some(e => e.key === key)) {
-          entries.push({ key, name, email, url, status: 'pending', capturedAt: new Date().toISOString() });
+          entries.push({ key, name, email, url, status: 'pending', capturedAt: new Date().toISOString(), sourceUrl: sourceEmailUrl(request.pageUrl) });
           await store.write(entries);
         }
         break;
@@ -35,14 +35,23 @@ export function createService(store: Store) {
         const entry = entries.find(e => e.key === request.key);
         if (!entry) throw new Error('Sender not found. Refresh and try again.');
         entry.status = request.status;
+        entry.toUnsubscribe = false;
+        await store.write(entries);
+        break;
+      }
+      case 'mark': {
+        if (typeof request.marked !== 'boolean') throw new Error('Invalid review marker.');
+        const entry = entries.find(e => e.key === request.key && e.status === 'pending');
+        if (!entry) throw new Error('Sender is no longer awaiting review. Refresh and try again.');
+        entry.toUnsubscribe = request.marked;
         await store.write(entries);
         break;
       }
       case 'open': {
-        const pending = entries.filter(e => e.status === 'pending');
+        const pending = entries.filter(e => e.status === 'pending' && e.toUnsubscribe);
         if (pending.length) {
           await store.open(pending.map(e => e.url));
-          pending.forEach(e => { e.status = 'opened'; });
+          pending.forEach(e => { e.status = 'opened'; e.toUnsubscribe = false; });
           try {
             await store.write(entries);
           } catch {

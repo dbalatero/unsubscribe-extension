@@ -8,11 +8,14 @@ export interface Entry extends Capture {
   key: string;
   status: Status;
   capturedAt: string;
+  sourceUrl?: string;
+  toUnsubscribe?: boolean;
 }
 export type Request =
   | { type: 'capture'; capture: Capture; pageUrl: string }
   | { type: 'list' }
   | { type: 'status'; key: string; status: Status }
+  | { type: 'mark'; key: string; marked: boolean }
   | { type: 'open' };
 export type Reply = { ok: true; entries: Entry[]; opened?: number } | { ok: false; error: string };
 
@@ -55,5 +58,16 @@ export function isEntry(value: unknown): value is Entry {
   if (!isCapture(value)) return false;
   const e = value as Entry;
   return e.key === senderKey(e.email, e.name) && isStatus(e.status) &&
-    typeof e.capturedAt === 'string' && Number.isFinite(Date.parse(e.capturedAt));
+    typeof e.capturedAt === 'string' && Number.isFinite(Date.parse(e.capturedAt)) &&
+    (e.sourceUrl === undefined || (typeof e.sourceUrl === 'string' && isSupportedMessage(e.sourceUrl))) &&
+    (e.toUnsubscribe === undefined || typeof e.toUnsubscribe === 'boolean');
+}
+
+// Retain the account selector, but not incidental query parameters or fragments.
+export function sourceEmailUrl(value: string): string {
+  const original = new URL(value);
+  const source = new URL(original.origin + original.pathname);
+  const account = original.searchParams.get('u');
+  if (account) source.searchParams.set('u', account);
+  return source.href;
 }
