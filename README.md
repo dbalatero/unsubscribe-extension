@@ -41,11 +41,15 @@ After rebuilding, click the extension's **Reload** button on `chrome://extension
 
 - Read emails in Inbox (`https://app.fastmail.com/mail/Inbox/<message-id>`) or All Mail (`https://app.fastmail.com/mail/Archive/<message-id>`). Expanded messages with an unsubscribe link are captured automatically, including navigation within Fastmail without a full page reload.
 - The extension icon shows the number of senders waiting for review; the badge disappears when there are none. Pin it to the toolbar to keep the count visible.
-- Click the extension icon to review captured senders. You can also use the extension's **Options** page for a larger view.
-- Click **Keep** for senders you want. They disappear from the review list, remain in **Kept**, and are never recaptured automatically.
-- Click **Open all … unsubscribe pages** to open the remaining senders in one new window. Finish each site's unsubscribe flow yourself.
-- Successfully opened senders move to **Opened** so they are not offered repeatedly. This records opening a page, not confirmation of unsubscribing. **Review again** puts a kept or opened sender back into the queue.
+- Click the extension icon to open the full review tab. Chrome reuses the existing review tab when one is already open.
+- **Read newsletter ↗** opens the email where that sender was first captured. The first source URL is never replaced by later messages. Older entries show **Source email not recorded**, since their original email cannot be reconstructed.
+- Click **Keep** or press **d** for senders you want. They disappear from the review list, remain in **Kept**, and are never recaptured automatically.
+- Click **To unsubscribe** or press **f** to mark a sender and dim its row. **Undo mark** removes the marker. Marks persist across browser restarts, but do not open links or change the pending status.
+- The button fixed on the right shows the marked count. Click **Open N marked unsubscribe pages** or press **⌘ Enter** (**Ctrl Enter** also works) to open only marked senders in one new window. Unmarked senders remain for later. Finish each site's unsubscribe flow yourself.
+- Successfully opened senders move to **Opened** so they are not offered repeatedly. This records opening a page, not confirmation of unsubscribing. **Review again** puts a kept or opened sender back into the queue with its marker cleared.
 - Clicking an individual destination link opens just that page without changing its status.
+
+Use **j** to move focus down and **k** to move it up; navigation stops at either end. The focused row shows shortcut hints. Marking or keeping a sender advances focus. Rows stay in place as you mark them; reopening or returning to the review tab sorts marked senders below unmarked ones. Shortcuts do not intercept typing in editable fields.
 
 Deduplication uses the exact, case-insensitive sender domain, falling back to the normalized sender name when no email address is exposed. Subdomains are distinct. Different newsletters sharing one sender domain count as the same sender. The database is shared across Fastmail accounts in the same Chrome profile.
 
@@ -64,7 +68,7 @@ After updating, reload the extension at `chrome://extensions` and accept the add
 - The only site matched by the content script is **https://app.fastmail.com/**. No wildcard domain, beta host, other Fastmail host, or unsubscribe destination is granted access.
 - The script is registered across that origin so it can detect Fastmail's client-side navigation. It only extracts from **/mail/Inbox/<message-id>** and **/mail/Archive/<message-id>**, ignoring other folders, list views, settings, and other routes.
 - Only expanded message cards are scanned. Draft cards, quoted messages, and explicitly hidden content are excluded.
-- The database uses `chrome.storage.local`. It stores sender name, sender address, unsubscribe URL, capture time, and review status. It does not sync to a server or collect email bodies, subjects, account credentials, or API tokens.
+- The database uses `chrome.storage.local`. It stores sender name, sender address, unsubscribe URL, first source-email URL, capture time, review status, and unsubscribe marker. The source URL retains only the Fastmail account selector (`u`) from its query string. It does not sync to a server or collect email bodies, subjects, account credentials, or API tokens.
 - The extension makes no network requests to capture links and never clicks Fastmail's Unsubscribe button or submits an unsubscribe form. Opening saved URLs is a user action; some providers may unsubscribe immediately when their URL is opened.
 - Uninstalling the extension removes its local database. Chrome's storage quota still applies; failures are reported without deliberately clearing saved data.
 
@@ -86,9 +90,11 @@ npm run test:e2e              # build and exercise the actual extension in Chrom
 
 `npm run test:watch` runs unit tests while editing. Unit tests cover every TypeScript source file, including extension entry points, and enforce 100% statements, branches, functions, and lines.
 
-The browser test uses a fresh temporary profile, intercepts mail pages, and serves synthetic unsubscribe destinations on localhost. It does not connect to your mailbox or any real unsubscribe endpoint. It verifies capture from the redacted fixture, SPA navigation, keep decisions, deduplication, one-window bulk opening, persistence across browser restarts, badge updates, and reminder alarm creation. OS notification delivery is stubbed to avoid alerting you during tests; reminder timing and delivery markers are covered by unit tests. Its screenshot is saved to `test-results/review.png`.
+The browser test uses a fresh temporary profile, intercepts mail pages, and serves synthetic unsubscribe destinations on localhost. It does not connect to your mailbox or any real unsubscribe endpoint. It verifies capture from the redacted fixture, SPA navigation, keep decisions, deduplication, source-email links, keyboard triage, marked-only bulk opening, persistence across browser restarts, badge updates, and reminder alarm creation. OS notification delivery is stubbed to avoid alerting you during tests; reminder timing and delivery markers are covered by unit tests. Its screenshot is saved to `test-results/review.png`.
 
 Use Playwright's bundled Chromium for extension tests. If you set `PLAYWRIGHT_BROWSERS_PATH`, use the same value for both browser installation and test execution. The local unsubscribe server is intentional: the initial navigation of a tab created through `chrome.windows.create` can race Playwright's request interception.
+
+The browser test explicitly dispatches the tab-return focus event because Playwright emulates every page as focused. Unit tests also cover visibility changes and returning to an existing review session.
 
 The production extension uses TypeScript and Vite without a UI framework. A single background service worker serializes all writes, so multiple Fastmail tabs cannot overwrite one another's captures. Chrome messaging accepts capture requests only from top-level Inbox or All Mail message pages; review actions come only from the extension's own page. The content script is bundled separately as an IIFE for Chrome's isolated world.
 

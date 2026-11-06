@@ -15,6 +15,9 @@ Main prompt of what we are building is in @MAIN_PROMPT.md
 - Redact real email HTML before committing fixtures: addresses, message content, account/message IDs, tracking URLs, and tokens can all be sensitive. Preserve DOM structure with synthetic values.
 - Monday reminders are once-per-week catch-up reminders after 9 a.m. local time, with a persisted delivery marker. Preserve that behavior across sleep, restarts, and daylight-saving changes.
 
+- Capture the first source-email URL once; do not replace it on duplicate captures or invent one for legacy entries.
+- Review marks are persistent UI state on pending senders. Bulk-open only marked senders; preserve row order during triage and sort marked rows last when the user returns to the review tab.
+
 # Development
 
 - See README.md for devenv/direnv setup and Chrome installation. Do not hardcode machine-specific Nix store or browser paths.

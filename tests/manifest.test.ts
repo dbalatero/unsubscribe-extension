@@ -11,5 +11,6 @@ it('grants storage, reminders and exactly the requested Fastmail origin', () => 
     matches: ['https://app.fastmail.com/*'], js: ['content.js'], run_at: 'document_idle',
   }]);
   expect(manifest.background).toEqual({ service_worker: 'background.js', type: 'module' });
-  expect(manifest.action.default_popup).toBe('index.html');
+  expect(manifest.action.default_popup).toBeUndefined();
+  expect(manifest.options_page).toBe('index.html');
 });

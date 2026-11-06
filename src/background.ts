@@ -16,3 +16,9 @@ chrome.runtime.onMessage.addListener((request: unknown, sender, respond) => {
 });
 
 installReminders(() => handle({ type: 'list' }));
+
+chrome.action.onClicked.addListener(() => {
+  void chrome.runtime.openOptionsPage().catch(() => {
+    console.warn('Unsubscribe Collector could not open review. Try again from the extension icon.');
+  });
+});

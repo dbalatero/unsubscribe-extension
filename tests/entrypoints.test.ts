@@ -11,7 +11,9 @@ it('wires the background worker to Chrome storage and windows, rejecting foreign
   const get = vi.fn(async () => ({ [STORAGE_KEY]: structuredClone(data) }));
   const set = vi.fn(async value => { data = structuredClone(value[STORAGE_KEY]); });
   const create = vi.fn(async () => ({}));
-  vi.stubGlobal('chrome', { runtime: { onMessage: { addListener }, getURL: () => 'chrome-extension://test/index.html' }, storage: { local: { get, set } }, windows: { create } });
+  const onClicked = vi.fn();
+  const openOptionsPage = vi.fn().mockResolvedValue(undefined);
+  vi.stubGlobal('chrome', { action: { onClicked: { addListener: onClicked } }, runtime: { openOptionsPage, onMessage: { addListener }, getURL: () => 'chrome-extension://test/index.html' }, storage: { local: { get, set } }, windows: { create } });
   await import('../src/background');
   expect(await installReminders.mock.calls[0][0]()).toEqual({ ok: true, entries: [] });
   const listener = addListener.mock.calls[0][0];
@@ -22,8 +24,17 @@ it('wires the background worker to Chrome storage and windows, rejecting foreign
   await call({ type: 'capture', capture, pageUrl }, { url: pageUrl, origin: 'https://app.fastmail.com', frameId: 0 });
   expect(get).toHaveBeenCalledWith(STORAGE_KEY);
   expect(set).toHaveBeenCalled();
+  await call({ type: 'mark', key: entry.key, marked: true });
   await call({ type: 'open' });
   expect(create).toHaveBeenCalledWith({ url: [capture.url], type: 'normal', focused: true });
+  onClicked.mock.calls[0][0]();
+  await Promise.resolve();
+  expect(openOptionsPage).toHaveBeenCalledOnce();
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  openOptionsPage.mockRejectedValueOnce(new Error('Unavailable'));
+  onClicked.mock.calls[0][0]();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(warn).toHaveBeenCalledOnce();
 });
 it('wires content capture, failed replies, warnings and cleanup', async () => {
   const stop = vi.fn();
@@ -47,7 +58,9 @@ it('wires content capture, failed replies, warnings and cleanup', async () => {
 it('wires review startup and local storage refreshes', async () => {
   document.body.innerHTML = '<main id="app"></main>';
   const refresh = vi.fn();
-  const mount = vi.fn(() => ({ refresh }));
+  const destroy = vi.fn();
+  const resume = vi.fn();
+  const mount = vi.fn(() => ({ refresh, resume, destroy }));
   vi.doMock('../src/ui', () => ({ mount }));
   const sendMessage = vi.fn();
   const addListener = vi.fn();
@@ -60,5 +73,17 @@ it('wires review startup and local storage refreshes', async () => {
   addListener.mock.calls[0][0]({}, 'sync');
   expect(refresh).not.toHaveBeenCalled();
   addListener.mock.calls[0][0]({}, 'local');
+  expect(refresh).not.toHaveBeenCalled();
+  addListener.mock.calls[0][0]({ [STORAGE_KEY]: {} }, 'local');
   expect(refresh).toHaveBeenCalledOnce();
+  const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+  document.dispatchEvent(new Event('visibilitychange'));
+  expect(resume).not.toHaveBeenCalled();
+  visibility.mockReturnValue('visible');
+  document.dispatchEvent(new Event('visibilitychange'));
+  expect(resume).toHaveBeenCalledOnce();
+  window.dispatchEvent(new Event('focus'));
+  expect(resume).toHaveBeenCalledTimes(2);
+  window.dispatchEvent(new Event('pagehide'));
+  expect(destroy).toHaveBeenCalledOnce();
 });

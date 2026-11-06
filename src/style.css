@@ -1,8 +1,8 @@
 :root { color: #243930; background: #f6f8f3; font: 14px/1.5 system-ui, sans-serif; color-scheme: light; }
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 440px; }
-main { max-width: 760px; margin: auto; padding: 28px; }
-h1 { margin: 4px 0 6px; font-size: 30px; font-weight: 650; letter-spacing: -1px; }
+body { margin: 0; min-width: 320px; }
+main { max-width: 1300px; margin: auto; padding: 56px 364px 80px 48px; }
+h1 { margin: 4px 0 6px; font-size: 38px; font-weight: 650; letter-spacing: -1px; }
 h2 { margin: 0; font-size: 15px; font-weight: 650; overflow-wrap: anywhere; }
 p { margin: 4px 0; }
 .eyebrow { font-size: 10px; letter-spacing: 2px; font-weight: 700; color: #537a64; }
@@ -14,7 +14,6 @@ button:disabled { cursor: default; opacity: .55; }
 button[aria-pressed="true"] { background: #dfead9; border-color: #aabda1; }
 button:focus-visible, a:focus-visible { outline: 3px solid #708b52; outline-offset: 3px; }
 .senders { margin: 0; padding: 0; list-style: none; }
-.senders li { display: flex; align-items: center; gap: 16px; padding: 18px 0; border-bottom: 1px solid #dce4da; }
 .sender { flex: 1; min-width: 0; }
 .sender p, .destination { font-size: 12px; overflow-wrap: anywhere; }
 .destination { color: #527444; text-underline-offset: 3px; }
@@ -28,3 +27,26 @@ footer { padding-top: 20px; }
 .notice:not(:empty) { padding: 10px; background: #e4eddf; border-radius: 6px; margin: 12px 0; }
 .error:not(:empty) { background: #fbe8e2; color: #863c29; }
 .refresh { font-size: 12px; padding: 5px 10px; }
+/* A full review tab with room for a persistent action panel. */
+.senders li { display: block; position: relative; margin: 16px 0; padding: 20px; border: 1px solid #dce4da; border-radius: 12px; background: #fff; scroll-margin: 24px; }
+.senders li.focused { border-color: #537a64; outline: 3px solid #537a64; outline-offset: 3px; }
+.row-content { display: flex; gap: 20px; align-items: center; }
+.marked .row-content { opacity: .5; }
+.row-actions { display: flex; flex-direction: column; gap: 8px; }
+.links { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 12px; align-items: center; }
+.links .fine { margin: 0; }
+.shortcuts { display: flex; flex-wrap: wrap; gap: 10px 24px; margin: 18px -20px -20px; padding: 10px 20px; border-top: 1px solid #dce4da; background: #eaf1e6; border-radius: 0 0 12px 12px; font-size: 12px; }
+.shortcuts[hidden] { display: none; }
+.marker { display: inline-block; margin-top: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+.bulk { position: fixed; right: 32px; top: 56px; width: 284px; padding: 20px; border: 1px solid #d1dbcf; border-radius: 12px; background: #fff; box-shadow: 0 4px 24px #2439300c; z-index: 2; }
+.bulk .primary { white-space: normal; }
+.shortcut-label { text-align: center; font-size: 12px; margin-top: 10px; color: #537a64; }
+@media (min-width: 1400px) { .bulk { right: calc((100vw - 1300px) / 2 + 32px); } }
+@media (max-width: 900px) {
+  main { padding: 28px 24px 210px; }
+  .bulk { top: auto; bottom: 16px; right: 16px; width: min(320px, calc(100vw - 32px)); padding: 14px; }
+  .bulk .fine { margin-bottom: 0; }
+  .row-content { align-items: start; flex-direction: column; }
+  .row-actions { flex-direction: row; flex-wrap: wrap; }
+  .senders li { scroll-margin-bottom: 210px; }
+}
