@@ -37,6 +37,29 @@ function live(initial: Entry[]) {
 const focused = () => document.querySelector<HTMLElement>('li.focused');
 const rowNames = () => Array.from(document.querySelectorAll('.senders h2'), e => e.textContent);
 
+it('sorts every list by sender name, keeping marked pending senders in their own alphabetical group', async () => {
+  const { resume } = live([
+    { ...third, name: 'zebra', toUnsubscribe: true },
+    { ...second, name: 'Beta' },
+    { ...entry, name: 'alpha' },
+    { ...entry, key: 'domain:marked-a.test', email: 'news@marked-a.test', name: 'apple', toUnsubscribe: true },
+    { ...third, key: 'domain:kept-z.test', email: 'news@kept-z.test', name: 'Zebra', status: 'kept' },
+    { ...entry, key: 'domain:kept-a.test', email: 'news@kept-a.test', name: 'apple', status: 'kept' },
+    { ...third, key: 'domain:opened-z.test', email: 'news@opened-z.test', name: 'Zebra', status: 'opened' },
+    { ...entry, key: 'domain:opened-a.test', email: 'news@opened-a.test', name: 'apple', status: 'opened' },
+  ]);
+  await flush();
+  expect(rowNames()).toEqual(['alpha', 'Beta', 'apple', 'zebra']);
+  key('f'); await flush();
+  expect(rowNames()).toEqual(['alpha', 'Beta', 'apple', 'zebra']);
+  await resume();
+  expect(rowNames()).toEqual(['Beta', 'alpha', 'apple', 'zebra']);
+  click('Kept');
+  expect(rowNames()).toEqual(['apple', 'Zebra']);
+  click('Opened');
+  expect(rowNames()).toEqual(['apple', 'Zebra']);
+});
+
 it('renders empty states, filters, and a disabled bulk action', async () => {
   const { root } = setup();
   await flush();
@@ -78,8 +101,12 @@ it('moves j/k focus without wrapping and allows mouse/native focus selection', a
   root.querySelectorAll<HTMLElement>('li')[2].focus();
   expect(focused()?.dataset.key).toBe(third.key);
   expect(focused()?.querySelector<HTMLElement>('.shortcuts')?.hidden).toBe(false);
-  expect(focused()?.textContent).toContain('f  To unsubscribe');
-  expect(focused()?.textContent).toContain('d  To keep');
+  expect(focused()?.querySelector('.shortcuts')?.textContent).toBe('j ↓   k ↑   Move focus');
+  for (const shortcut of ['f', 'd']) {
+    const legend = focused()?.querySelector(`button[aria-keyshortcuts="${shortcut}"] kbd`);
+    expect(legend?.textContent).toBe(shortcut);
+    expect(legend?.getAttribute('aria-hidden')).toBe('true');
+  }
 });
 it('marks with f, advances focus, dims in place and sorts marked senders last only on remount', async () => {
   const { root, refresh, service, destroy } = live([entry, second, third]);
@@ -116,7 +143,7 @@ it('keeps with d, moves the sender to Kept and chooses a neighboring row', async
   const calls = send.mock.calls.length;
   key('f'); key('d'); key('x');
   expect(send).toHaveBeenCalledTimes(calls);
-  expect(focused()?.textContent).not.toContain('f  To unsubscribe');
+  expect(focused()?.querySelector('kbd')).toBeNull();
   click('Review again');
   await flush();
   click('To review');
@@ -131,7 +158,10 @@ it('opens only marked senders with cmd-enter, with a live count, and keeps unmar
   expect(key('Enter', { metaKey: true }).defaultPrevented).toBe(false);
   click('To unsubscribe');
   await flush();
-  expect(root.querySelector('.primary')?.textContent).toBe('Open 1 marked unsubscribe pages');
+  expect(root.querySelector('.primary')?.firstChild?.textContent).toBe('Open 1 marked unsubscribe pages');
+  expect(root.querySelector('.primary kbd')?.textContent).toBe('⌘ Enter');
+  expect(root.querySelector('.primary kbd')?.getAttribute('aria-hidden')).toBe('true');
+  expect(root.querySelector('.primary')?.getAttribute('aria-keyshortcuts')).toBe('Meta+Enter Control+Enter');
   expect(key('Enter', { metaKey: true }).defaultPrevented).toBe(true);
   expect(root.textContent).toContain('Working… (1 marked)');
   await flush();

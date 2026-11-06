@@ -40,7 +40,10 @@ footer { padding-top: 20px; }
 .marker { display: inline-block; margin-top: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
 .bulk { position: fixed; right: 32px; top: 56px; width: 284px; padding: 20px; border: 1px solid #d1dbcf; border-radius: 12px; background: #fff; box-shadow: 0 4px 24px #2439300c; z-index: 2; }
 .bulk .primary { white-space: normal; }
-.shortcut-label { text-align: center; font-size: 12px; margin-top: 10px; color: #537a64; }
+.with-key { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+kbd { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 25px; padding: 0 6px; border: 1px solid #c8d2c5; border-bottom-width: 3px; border-radius: 5px; background: linear-gradient(#fff, #edf1ea); color: #52634f; box-shadow: 0 1px 1px #24393012, inset 0 1px 0 #fff; font: 500 12px/1 system-ui, sans-serif; white-space: nowrap; }
+.primary.with-key { flex-direction: column; gap: 10px; }
+.primary kbd { background: linear-gradient(#41624c, #34523e); color: #f1f6ed; border-color: #718874; border-bottom-color: #182f21; box-shadow: inset 0 1px 0 #ffffff20, 0 1px 1px #0002; }
 @media (min-width: 1400px) { .bulk { right: calc((100vw - 1300px) / 2 + 32px); } }
 @media (max-width: 900px) {
   main { padding: 28px 24px 210px; }

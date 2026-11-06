@@ -11,7 +11,8 @@ export function mount(root: HTMLElement, send: (request: Request) => Promise<Rep
   let message = '';
   let error = '';
   let revision = 0;
-  const shown = () => entries.filter(e => e.status === view).sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key));
+  const byName = (a: Entry, b: Entry) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true });
+  const shown = () => entries.filter(e => e.status === view).sort(view === 'pending' ? (a, b) => order.indexOf(a.key) - order.indexOf(b.key) : byName);
   const markedCount = () => entries.filter(e => e.status === 'pending' && e.toUnsubscribe).length;
   const element = <K extends keyof HTMLElementTagNameMap>(tag: K, text = '', className = '') => {
     const node = document.createElement(tag);
@@ -19,10 +20,17 @@ export function mount(root: HTMLElement, send: (request: Request) => Promise<Rep
     node.className = className;
     return node;
   };
-  const button = (label: string, action: () => void, className = '') => {
+  const button = (label: string, action: () => void, className = '', shortcut?: string) => {
     const node = element('button', label, className);
     node.type = 'button';
     node.disabled = busy;
+    if (shortcut) {
+      node.classList.add('with-key');
+      const legend = element('kbd', shortcut);
+      legend.setAttribute('aria-hidden', 'true');
+      node.append(legend);
+      node.setAttribute('aria-keyshortcuts', shortcut);
+    }
     node.addEventListener('click', action);
     return node;
   };
@@ -97,15 +105,14 @@ export function mount(root: HTMLElement, send: (request: Request) => Promise<Rep
       if (view === 'pending') {
         actions.append(entry.toUnsubscribe
           ? button('Undo mark', () => { void run({ type: 'mark', key: entry.key, marked: false }); })
-          : button('To unsubscribe', () => decide(entry, false)));
-        actions.append(button('Keep', () => decide(entry, true), 'keep'));
+          : button('To unsubscribe', () => decide(entry, false), '', 'f'));
+        actions.append(button('Keep', () => decide(entry, true), 'keep', 'd'));
       } else {
         actions.append(button('Review again', () => { void run({ type: 'status', key: entry.key, status: 'pending' }); }));
       }
       content.append(details, actions);
       const shortcuts = element('div', '', 'shortcuts');
       shortcuts.append(element('span', 'j ↓   k ↑   Move focus'));
-      if (view === 'pending') shortcuts.append(element('span', 'f  To unsubscribe'), element('span', 'd  To keep'));
       if (entry.toUnsubscribe) details.append(element('span', 'To unsubscribe', 'marker'));
       row.append(content, shortcuts);
       list.append(row);
@@ -114,10 +121,10 @@ export function mount(root: HTMLElement, send: (request: Request) => Promise<Rep
     const bulk = element('aside', '', 'bulk');
     bulk.setAttribute('aria-label', 'Bulk unsubscribe');
     const count = markedCount();
-    const open = button(busy ? `Working… (${count} marked)` : `Open ${count} marked unsubscribe pages`, () => { void run({ type: 'open' }); }, 'primary');
+    const open = button(busy ? `Working… (${count} marked)` : `Open ${count} marked unsubscribe pages`, () => { void run({ type: 'open' }); }, 'primary', '⌘ Enter');
     open.disabled = busy || count === 0;
     open.setAttribute('aria-keyshortcuts', 'Meta+Enter Control+Enter');
-    bulk.append(open, element('p', '⌘ Enter · Ctrl Enter', 'shortcut-label'), element('p', 'Only marked senders. One new window, one tab each.', 'muted fine'));
+    bulk.append(open, element('p', 'Only marked senders. One new window, one tab each.', 'muted fine'));
     root.append(bulk);
     const footer = element('footer');
     if (view === 'opened') footer.append(element('p', 'Opened does not mean unsubscribed. Use “Review again” if you still need to finish.', 'muted fine'));
@@ -138,7 +145,7 @@ export function mount(root: HTMLElement, send: (request: Request) => Promise<Rep
       if (!reply.ok) throw new Error(reply.error);
       entries = reply.entries;
       if (!order.length) {
-        order = [...entries].sort((a, b) => Number(Boolean(a.toUnsubscribe)) - Number(Boolean(b.toUnsubscribe))).map(e => e.key);
+        order = [...entries].sort((a, b) => Number(Boolean(a.toUnsubscribe)) - Number(Boolean(b.toUnsubscribe)) || byName(a, b)).map(e => e.key);
         selected = undefined;
       }
       for (const entry of entries) if (!order.includes(entry.key)) order.push(entry.key);

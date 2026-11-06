@@ -49,7 +49,7 @@ After rebuilding, click the extension's **Reload** button on `chrome://extension
 - Successfully opened senders move to **Opened** so they are not offered repeatedly. This records opening a page, not confirmation of unsubscribing. **Review again** puts a kept or opened sender back into the queue with its marker cleared.
 - Clicking an individual destination link opens just that page without changing its status.
 
-Use **j** to move focus down and **k** to move it up; navigation stops at either end. The focused row shows shortcut hints. Marking or keeping a sender advances focus. Rows stay in place as you mark them; reopening or returning to the review tab sorts marked senders below unmarked ones. Shortcuts do not intercept typing in editable fields.
+Use **j** to move focus down and **k** to move it up; navigation stops at either end. Button keycaps show **f**, **d**, and **⌘ Enter**; the focused row shows navigation hints. Marking or keeping a sender advances focus. Lists sort alphabetically by sender name, ignoring case. Rows stay in place as you mark them; reopening or returning to the review tab sorts marked senders below unmarked ones, alphabetically within each group. New captures append during triage and sort when you return. Shortcuts do not intercept typing in editable fields.
 
 Deduplication uses the exact, case-insensitive sender domain, falling back to the normalized sender name when no email address is exposed. Subdomains are distinct. Different newsletters sharing one sender domain count as the same sender. The database is shared across Fastmail accounts in the same Chrome profile.
 
