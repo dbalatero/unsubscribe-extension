@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { isInboxMessage, webUrl, senderKey, isCapture, isEntry, isStatus } from '../src/model';
+import { isSupportedMessage, webUrl, senderKey, isCapture, isEntry, isStatus } from '../src/model';
 
 import { capture, entry } from './fixtures';
 
 describe('scope and URL validation', () => {
-  it.each(['https://app.fastmail.com/mail/Inbox/abc.def?u=account', 'https://app.fastmail.com/mail/Inbox/abc/'])('allows an Inbox message: %s', url => expect(isInboxMessage(url)).toBe(true));
-  it.each(['', 'invalid', 'http://app.fastmail.com/mail/Inbox/a', 'https://betaapp.fastmail.com/mail/Inbox/a', 'https://app.fastmail.com.evil.test/mail/Inbox/a', 'https://app.fastmail.com/mail/Inbox', 'https://app.fastmail.com/mail/Inbox/', 'https://app.fastmail.com/mail/Inbox/a/b', 'https://app.fastmail.com/mail/Sent/a', 'https://app.fastmail.com/settings'])('ignores %s', url => expect(isInboxMessage(url)).toBe(false));
+  it.each(['https://app.fastmail.com/mail/Inbox/abc.def?u=account', 'https://app.fastmail.com/mail/Inbox/abc/', 'https://app.fastmail.com/mail/Archive/abc.def?u=account', 'https://app.fastmail.com/mail/Archive/abc/'])('allows a supported message: %s', url => expect(isSupportedMessage(url)).toBe(true));
+  it.each(['', 'invalid', 'http://app.fastmail.com/mail/Inbox/a', 'https://betaapp.fastmail.com/mail/Inbox/a', 'https://app.fastmail.com.evil.test/mail/Inbox/a', 'https://app.fastmail.com/mail/Inbox', 'https://app.fastmail.com/mail/Inbox/', 'https://app.fastmail.com/mail/Inbox/a/b', 'https://app.fastmail.com/mail/Sent/a', 'https://app.fastmail.com/settings', 'https://app.fastmail.com/mail/Archive', 'https://app.fastmail.com/mail/Archive/', 'https://app.fastmail.com/mail/Archive/a/b', 'https://app.fastmail.com/mail/archive/a', 'https://other.test/mail/Archive/a'])('ignores %s', url => expect(isSupportedMessage(url)).toBe(false));
   it.each(['javascript:alert(1)', 'mailto:a@b.test', 'data:text/html,abc', 'file:///tmp/a', '/relative', 'https://user:pass@example.test', 'https://:pass@example.test'])('rejects non-web URLs: %s', url => expect(webUrl(url)).toBeNull());
   it('accepts HTTP and HTTPS and normalizes', () => {
     expect(webUrl('https://example.test')).toBe('https://example.test/');

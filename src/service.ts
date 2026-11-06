@@ -1,4 +1,4 @@
-import { type Entry, type Reply, type Request, isCapture, isEntry, isInboxMessage, isStatus, senderKey } from './model';
+import { type Entry, type Reply, type Request, isCapture, isEntry, isSupportedMessage, isStatus, senderKey } from './model';
 
 export const STORAGE_KEY = 'senders.v1';
 export interface Store {
@@ -69,6 +69,6 @@ export function authorized(input: unknown, sender: chrome.runtime.MessageSender,
   const request = input as Request;
   // Chrome's sender.url can retain the document's original URL after pushState.
   // The isolated content script supplies its current route; Chrome supplies its origin.
-  if (request.type === 'capture') return sender.frameId === 0 && sender.origin === 'https://app.fastmail.com' && isInboxMessage(request.pageUrl);
+  if (request.type === 'capture') return sender.frameId === 0 && sender.origin === 'https://app.fastmail.com' && isSupportedMessage(request.pageUrl);
   return sender.url === extensionUrl;
 }

@@ -1,6 +1,6 @@
 # Unsubscribe Collector for Fastmail
 
-A local Chrome extension that collects unsubscribe links while you read emails in your Fastmail Inbox. Keep the senders you like, then open the rest in one new window, one tab per sender.
+A local Chrome extension that collects unsubscribe links while you read emails in your Fastmail Inbox or All Mail. Keep the senders you like, then open the rest in one new window, one tab per sender.
 
 ## Install
 
@@ -39,7 +39,7 @@ After rebuilding, click the extension's **Reload** button on `chrome://extension
 
 ## Use
 
-- Read emails at `https://app.fastmail.com/mail/Inbox/<message-id>`. Expanded messages with an unsubscribe link are captured automatically, including navigation within Fastmail without a full page reload.
+- Read emails in Inbox (`https://app.fastmail.com/mail/Inbox/<message-id>`) or All Mail (`https://app.fastmail.com/mail/Archive/<message-id>`). Expanded messages with an unsubscribe link are captured automatically, including navigation within Fastmail without a full page reload.
 - The extension icon shows the number of senders waiting for review; the badge disappears when there are none. Pin it to the toolbar to keep the count visible.
 - Click the extension icon to review captured senders. You can also use the extension's **Options** page for a larger view.
 - Click **Keep** for senders you want. They disappear from the review list, remain in **Kept**, and are never recaptured automatically.
@@ -62,13 +62,13 @@ After updating, reload the extension at `chrome://extensions` and accept the add
 ## Access and privacy
 
 - The only site matched by the content script is **https://app.fastmail.com/**. No wildcard domain, beta host, other Fastmail host, or unsubscribe destination is granted access.
-- The script is registered across that origin so it can detect Fastmail's client-side navigation. It only extracts from **/mail/Inbox/<message-id>**, ignoring other folders, list views, settings, and other routes.
+- The script is registered across that origin so it can detect Fastmail's client-side navigation. It only extracts from **/mail/Inbox/<message-id>** and **/mail/Archive/<message-id>**, ignoring other folders, list views, settings, and other routes.
 - Only expanded message cards are scanned. Draft cards, quoted messages, and explicitly hidden content are excluded.
 - The database uses `chrome.storage.local`. It stores sender name, sender address, unsubscribe URL, capture time, and review status. It does not sync to a server or collect email bodies, subjects, account credentials, or API tokens.
 - The extension makes no network requests to capture links and never clicks Fastmail's Unsubscribe button or submits an unsubscribe form. Opening saved URLs is a user action; some providers may unsubscribe immediately when their URL is opened.
 - Uninstalling the extension removes its local database. Chrome's storage quota still applies; failures are reported without deliberately clearing saved data.
 
-The committed `test-data/fastmail.html` is a **redacted fixture** based on the supplied page. Message text, addresses, account/message identifiers, tracking links, and tokens were replaced with synthetic values. Scripts, styles, metadata, and external resource sources were removed. The original HTML was not committed or backed up by this project.
+The committed `test-data/fastmail.html` and `test-data/allmail.html` are **redacted fixtures** based on the supplied pages. Message text, addresses, account/message identifiers, tracking links, and tokens were replaced with synthetic values. Scripts, styles, metadata, and external resource sources were removed. The original HTML was not committed or backed up by this project.
 
 ## Detection limits
 
@@ -90,6 +90,6 @@ The browser test uses a fresh temporary profile, intercepts mail pages, and serv
 
 Use Playwright's bundled Chromium for extension tests. If you set `PLAYWRIGHT_BROWSERS_PATH`, use the same value for both browser installation and test execution. The local unsubscribe server is intentional: the initial navigation of a tab created through `chrome.windows.create` can race Playwright's request interception.
 
-The production extension uses TypeScript and Vite without a UI framework. A single background service worker serializes all writes, so multiple Fastmail tabs cannot overwrite one another's captures. Chrome messaging accepts capture requests only from top-level Inbox message pages; review actions come only from the extension's own page. The content script is bundled separately as an IIFE for Chrome's isolated world.
+The production extension uses TypeScript and Vite without a UI framework. A single background service worker serializes all writes, so multiple Fastmail tabs cannot overwrite one another's captures. Chrome messaging accepts capture requests only from top-level Inbox or All Mail message pages; review actions come only from the extension's own page. The content script is bundled separately as an IIFE for Chrome's isolated world.
 
-Chrome's `MessageSender.url` can retain the original document URL after Fastmail navigates with `history.pushState`. Capture authorization therefore checks Chrome's sender origin and top-frame identity together with the current Inbox route supplied by the isolated content script. Keep the SPA browser regression test when changing this code.
+Chrome's `MessageSender.url` can retain the original document URL after Fastmail navigates with `history.pushState`. Capture authorization therefore checks Chrome's sender origin and top-frame identity together with the current Inbox or All Mail route supplied by the isolated content script. Keep the SPA browser regression test when changing this code.

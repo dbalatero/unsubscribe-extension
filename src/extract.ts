@@ -1,4 +1,4 @@
-import { type Capture, isInboxMessage, webUrl } from './model';
+import { type Capture, isSupportedMessage, webUrl } from './model';
 
 const unsubscribe = /\bunsubscribe\b|\bopt[\s-]?out\b/i;
 const preferences = /\b(?:manage|update|email|subscription)\s+preferences\b|\bmanage\s+(?:your\s+)?subscriptions?\b/i;
@@ -22,7 +22,7 @@ export function unsubscribeLink(body: Element): string | null {
 }
 
 export function extract(doc: Document, pageUrl: string): Capture[] {
-  if (!isInboxMessage(pageUrl)) return [];
+  if (!isSupportedMessage(pageUrl)) return [];
   const captures: Capture[] = [];
   for (const card of doc.querySelectorAll('.v-MessageCard.is-expanded:not(.v-MessageCard--draft)')) {
     if (card.closest('[hidden], [aria-hidden="true"]')) continue;

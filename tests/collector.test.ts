@@ -3,14 +3,14 @@ import { collect } from '../src/collector';
 import { card, pageUrl } from './fixtures';
 
 afterEach(() => { vi.useRealTimers(); document.body.replaceChildren(); });
-it('captures initial and dynamically inserted messages, deduplicates, and notices SPA navigation', async () => {
+it.each(['Inbox', 'Archive'])('captures initial and dynamic messages and SPA navigation in %s', async folder => {
   vi.useFakeTimers();
-  let url = 'https://app.fastmail.com/mail/Inbox';
+  let url = `https://app.fastmail.com/mail/${folder}`;
   document.body.innerHTML = card();
   const save = vi.fn(async () => {});
   const stop = collect(document, () => url, save, vi.fn());
   expect(save).not.toHaveBeenCalled();
-  url = pageUrl;
+  url = `https://app.fastmail.com/mail/${folder}/message?u=example`;
   await vi.advanceTimersByTimeAsync(2000);
   expect(save).toHaveBeenCalledTimes(1);
   await vi.advanceTimersByTimeAsync(2000);

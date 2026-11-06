@@ -15,6 +15,7 @@ test('built extension captures scoped mail, remembers keep decisions, and opens 
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
   const local = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   const fixture = await readFile('test-data/fastmail.html', 'utf8');
+  const allMailFixture = await readFile('test-data/allmail.html', 'utf8');
   const profile = await mkdtemp(join(tmpdir(), 'unsubscribe-e2e-'));
   const extension = resolve('dist');
   const launch = () => chromium.launchPersistentContext(profile, {
@@ -29,9 +30,10 @@ test('built extension captures scoped mail, remembers keep decisions, and opens 
     await context.route(/^https?:\/\//, route => {
       const url = new URL(route.request().url());
       if (url.hostname === '127.0.0.1') return route.continue();
-      let html = fixture;
-      if (url.pathname.endsWith('/second')) html = fixture.replaceAll('newsletter@example.test', 'news@second.test').replaceAll('Example Newsletter', 'Second Newsletter').replaceAll('https://links.example.test', `${local}/second`);
-      if (url.pathname.endsWith('/third')) html = fixture.replaceAll('newsletter@example.test', 'news@third.test').replaceAll('Example Newsletter', 'Third Newsletter').replaceAll('https://links.example.test', `${local}/third`);
+      const source = url.pathname.startsWith('/mail/Archive') ? allMailFixture : fixture;
+      let html = source;
+      if (url.pathname.endsWith('/second')) html = source.replaceAll('newsletter@example.test', 'news@second.test').replaceAll('Example Newsletter', 'Second Newsletter').replaceAll('https://links.example.test', `${local}/second`);
+      if (url.pathname.endsWith('/third')) html = source.replaceAll('newsletter@example.test', 'news@third.test').replaceAll('Example Newsletter', 'Third Newsletter').replaceAll('https://links.example.test', `${local}/third`);
       return route.fulfill({ contentType: 'text/html', body: html });
     });
     const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
@@ -59,7 +61,13 @@ test('built extension captures scoped mail, remembers keep decisions, and opens 
     await expect(review.getByRole('button', { name: 'Kept (1)' })).toBeVisible();
     await expect.poll(() => worker.evaluate(() => chrome.action.getBadgeText({}))).toBe('');
     await mail.reload();
-    await mail.goto('https://app.fastmail.com/mail/Inbox/second');
+    await mail.goto('https://app.fastmail.com/mail/Archive');
+    await expect(review.getByRole('button', { name: 'To review (0)' })).toBeVisible();
+    await mail.evaluate(() => history.pushState({}, '', '/mail/Archive/first?u=test-account'));
+    // Same sender remains kept across Inbox and All Mail.
+    await mail.reload();
+    await expect(review.getByRole('button', { name: 'Kept (1)' })).toBeVisible();
+    await mail.goto('https://app.fastmail.com/mail/Archive/second');
     await expect(review.getByRole('heading', { name: 'Second Newsletter' })).toBeVisible();
     await mail.goto('https://app.fastmail.com/mail/Inbox/third');
     await expect(review.getByRole('button', { name: 'To review (2)' })).toBeVisible();

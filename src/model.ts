@@ -16,10 +16,10 @@ export type Request =
   | { type: 'open' };
 export type Reply = { ok: true; entries: Entry[]; opened?: number } | { ok: false; error: string };
 
-export function isInboxMessage(value: string): boolean {
+export function isSupportedMessage(value: string): boolean {
   try {
     const url = new URL(value);
-    return url.origin === 'https://app.fastmail.com' && /^\/mail\/Inbox\/[^/]+\/?$/.test(url.pathname);
+    return url.origin === 'https://app.fastmail.com' && /^\/mail\/(?:Inbox|Archive)\/[^/]+\/?$/.test(url.pathname);
   } catch {
     return false;
   }

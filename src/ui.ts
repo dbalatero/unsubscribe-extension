@@ -23,7 +23,7 @@ export function mount(root: HTMLElement, send: (request: Request) => Promise<Rep
   const render = () => {
     root.replaceChildren();
     const header = element('header');
-    header.append(element('p', 'FASTMAIL · INBOX', 'eyebrow'), element('h1', 'A quieter inbox.'), element('p', 'Keep the senders you like. Take care of the rest.', 'muted'));
+    header.append(element('p', 'FASTMAIL · INBOX & ALL MAIL', 'eyebrow'), element('h1', 'A quieter inbox.'), element('p', 'Keep the senders you like. Take care of the rest.', 'muted'));
     const nav = element('nav');
     nav.setAttribute('aria-label', 'Sender lists');
     for (const [status, label] of [['pending', 'To review'], ['kept', 'Kept'], ['opened', 'Opened']] as const) {
@@ -39,7 +39,7 @@ export function mount(root: HTMLElement, send: (request: Request) => Promise<Rep
     const shown = entries.filter(e => e.status === view);
     if (!shown.length) {
       const empty = element('section', '', 'empty');
-      empty.append(element('h2', view === 'pending' ? 'You’re all caught up.' : 'Nothing here yet.'), element('p', view === 'pending' ? 'Open emails in your Fastmail Inbox. Unsubscribe links will appear here automatically.' : 'Your saved decisions will appear here.', 'muted'));
+      empty.append(element('h2', view === 'pending' ? 'You’re all caught up.' : 'Nothing here yet.'), element('p', view === 'pending' ? 'Open emails in your Fastmail Inbox or All Mail. Unsubscribe links will appear here automatically.' : 'Your saved decisions will appear here.', 'muted'));
       root.append(empty);
     }
     const list = element('ul', '', 'senders');

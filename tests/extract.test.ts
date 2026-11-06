@@ -6,10 +6,10 @@ import { pageUrl, card } from './fixtures';
 function doc(html: string) { return new DOMParser().parseFromString(html, 'text/html'); }
 function link(html: string) { return unsubscribeLink(doc(html).body); }
 
-it('extracts the actual, redacted Fastmail DOM fixture', () => {
-  const html = readFileSync('test-data/fastmail.html', 'utf8');
+it.each([['fastmail.html', pageUrl], ['allmail.html', 'https://app.fastmail.com/mail/Archive/message?u=example']])('extracts the actual, redacted Fastmail fixture %s', (file, url) => {
+  const html = readFileSync(`test-data/${file}`, 'utf8');
   const parsed = doc(html);
-  const found = extract(parsed, pageUrl);
+  const found = extract(parsed, url);
   expect(found).toHaveLength(1);
   expect(found[0]).toMatchObject({ name: 'Example Newsletter', email: 'newsletter@example.test' });
   expect(found[0].url).toMatch(/^https:\/\/links\.example\.test\/unsubscribe\/\d+\?token=REDACTED$/);
