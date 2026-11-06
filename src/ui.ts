@@ -2,7 +2,6 @@ import type { Entry, Reply, Request, Status } from './model';
 
 export function mount(root: HTMLElement, send: (request: Request) => Promise<Reply>) {
   let entries: Entry[] = [];
-  let order: string[] = [];
   let selected: string | undefined;
   let view: Status = 'pending';
   let busy = false;
@@ -12,7 +11,8 @@ export function mount(root: HTMLElement, send: (request: Request) => Promise<Rep
   let error = '';
   let revision = 0;
   const byName = (a: Entry, b: Entry) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true });
-  const shown = () => entries.filter(e => e.status === view).sort(view === 'pending' ? (a, b) => order.indexOf(a.key) - order.indexOf(b.key) : byName);
+  const shown = () => entries.filter(e => e.status === view).sort((a, b) =>
+    (view === 'pending' ? Number(Boolean(a.toUnsubscribe)) - Number(Boolean(b.toUnsubscribe)) : 0) || byName(a, b));
   const markedCount = () => entries.filter(e => e.status === 'pending' && e.toUnsubscribe).length;
   const element = <K extends keyof HTMLElementTagNameMap>(tag: K, text = '', className = '') => {
     const node = document.createElement(tag);
@@ -58,7 +58,8 @@ export function mount(root: HTMLElement, send: (request: Request) => Promise<Rep
   const decide = (entry: Entry, keep: boolean) => {
     const rows = shown();
     const index = rows.findIndex(e => e.key === entry.key);
-    const next = rows[index + 1] || rows[keep ? index - 1 : index];
+    const undecided = rows.filter(e => e.key !== entry.key && !e.toUnsubscribe);
+    const next = rows.slice(index + 1).find(e => !e.toUnsubscribe) || undecided[0];
     void run(keep ? { type: 'status', key: entry.key, status: 'kept' } : { type: 'mark', key: entry.key, marked: true }, next?.key, true);
   };
   const render = (moveFocus = false) => {
@@ -83,41 +84,54 @@ export function mount(root: HTMLElement, send: (request: Request) => Promise<Rep
       empty.append(element('h2', view === 'pending' ? 'You’re all caught up.' : 'Nothing here yet.'), element('p', view === 'pending' ? 'Open emails in your Fastmail Inbox or All Mail. Unsubscribe links will appear here automatically.' : 'Your saved decisions will appear here.', 'muted'));
       root.append(empty);
     }
-    const list = element('ul', '', 'senders');
-    list.setAttribute('aria-label', 'Senders');
-    for (const entry of rows) {
-      const row = element('li', '', entry.toUnsubscribe ? 'marked' : '');
-      row.dataset.key = entry.key;
-      row.setAttribute('aria-label', entry.name);
-      row.addEventListener('click', () => select(entry.key));
-      row.addEventListener('focusin', () => select(entry.key));
-      const content = element('div', '', 'row-content');
-      const details = element('div', '', 'sender');
-      details.append(element('h2', entry.name), element('p', entry.email || entry.key.slice(5), 'muted'));
-      const links = element('div', '', 'links');
-      if (entry.sourceUrl) links.append(link('Read newsletter ↗', entry.sourceUrl));
-      else links.append(element('span', 'Source email not recorded', 'muted fine'));
-      const destination = link(new URL(entry.url).hostname, entry.url);
-      destination.title = 'Open this unsubscribe page';
-      links.append(destination);
-      details.append(links);
-      const actions = element('div', '', 'row-actions');
+    const groups = view === 'pending'
+      ? [['To decide', rows.filter(e => !e.toUnsubscribe)], ['Decided', rows.filter(e => e.toUnsubscribe)]] as const
+      : [['Senders', rows]] as const;
+    for (const [label, groupRows] of groups) {
+      const section = element('section', '', 'sender-group');
+      section.setAttribute('aria-label', label);
       if (view === 'pending') {
-        actions.append(entry.toUnsubscribe
-          ? button('Undo mark', () => { void run({ type: 'mark', key: entry.key, marked: false }); })
-          : button('To unsubscribe', () => decide(entry, false), '', 'f'));
-        actions.append(button('Keep', () => decide(entry, true), 'keep', 'd'));
-      } else {
-        actions.append(button('Review again', () => { void run({ type: 'status', key: entry.key, status: 'pending' }); }));
+        const heading = element('h2', label, 'group-heading');
+        heading.append(element('span', String(groupRows.length), 'group-count'));
+        section.append(heading);
       }
-      content.append(details, actions);
-      const shortcuts = element('div', '', 'shortcuts');
-      shortcuts.append(element('span', 'j ↓   k ↑   Move focus'));
-      if (entry.toUnsubscribe) details.append(element('span', 'To unsubscribe', 'marker'));
-      row.append(content, shortcuts);
-      list.append(row);
+      const list = element('ul', '', 'senders');
+      list.setAttribute('aria-label', label);
+      section.append(list);
+      root.append(section);
+      for (const entry of groupRows) {
+        const row = element('li', '', entry.toUnsubscribe ? 'marked' : '');
+        row.dataset.key = entry.key;
+        row.setAttribute('aria-label', entry.name);
+        row.addEventListener('click', () => select(entry.key));
+        row.addEventListener('focusin', () => select(entry.key));
+        const content = element('div', '', 'row-content');
+        const details = element('div', '', 'sender');
+        details.append(element('h2', entry.name), element('p', entry.email || entry.key.slice(5), 'muted'));
+        const links = element('div', '', 'links');
+        if (entry.sourceUrl) links.append(link('Read newsletter ↗', entry.sourceUrl));
+        else links.append(element('span', 'Source email not recorded', 'muted fine'));
+        const destination = link(new URL(entry.url).hostname, entry.url);
+        destination.title = 'Open this unsubscribe page';
+        links.append(destination);
+        details.append(links);
+        const actions = element('div', '', 'row-actions');
+        if (view === 'pending') {
+          actions.append(entry.toUnsubscribe
+            ? button('Undo mark', () => { void run({ type: 'mark', key: entry.key, marked: false }); })
+            : button('To unsubscribe', () => decide(entry, false), '', 'f'));
+          actions.append(button('Keep', () => decide(entry, true), 'keep', 'd'));
+        } else {
+          actions.append(button('Review again', () => { void run({ type: 'status', key: entry.key, status: 'pending' }); }));
+        }
+        content.append(details, actions);
+        const shortcuts = element('div', '', 'shortcuts');
+        shortcuts.append(element('span', 'j ↓   k ↑   Move focus'));
+        if (entry.toUnsubscribe) details.append(element('span', 'To unsubscribe', 'marker'));
+        row.append(content, shortcuts);
+        list.append(row);
+      }
     }
-    root.append(list);
     const bulk = element('aside', '', 'bulk');
     bulk.setAttribute('aria-label', 'Bulk unsubscribe');
     const count = markedCount();
@@ -128,7 +142,7 @@ export function mount(root: HTMLElement, send: (request: Request) => Promise<Rep
     root.append(bulk);
     const footer = element('footer');
     if (view === 'opened') footer.append(element('p', 'Opened does not mean unsubscribed. Use “Review again” if you still need to finish.', 'muted fine'));
-    footer.append(element('p', 'Saved in this Chrome profile. Marked senders sort to the bottom when you reopen this page.', 'muted fine'), button('Refresh', () => { void refresh(); }, 'refresh'));
+    footer.append(element('p', 'Saved in this Chrome profile. Marked senders move to Decided, ready to open when you are.', 'muted fine'), button('Refresh', () => { void refresh(); }, 'refresh'));
     root.append(footer);
     paintFocus(moveFocus);
   };
@@ -144,11 +158,6 @@ export function mount(root: HTMLElement, send: (request: Request) => Promise<Rep
       if (current !== revision) return;
       if (!reply.ok) throw new Error(reply.error);
       entries = reply.entries;
-      if (!order.length) {
-        order = [...entries].sort((a, b) => Number(Boolean(a.toUnsubscribe)) - Number(Boolean(b.toUnsubscribe)) || byName(a, b)).map(e => e.key);
-        selected = undefined;
-      }
-      for (const entry of entries) if (!order.includes(entry.key)) order.push(entry.key);
       if (moveFocus) selected = nextFocus;
       if (reply.opened !== undefined) message = `Opened ${reply.opened} unsubscribe pages. Finish unsubscribing in the new window.`;
     } catch (cause) {
@@ -190,7 +199,7 @@ export function mount(root: HTMLElement, send: (request: Request) => Promise<Rep
   void refresh();
   return {
     refresh,
-    resume: () => { order = []; selected = undefined; return refresh(); },
+    resume: () => { selected = undefined; return refresh(); },
     destroy: () => document.removeEventListener('keydown', keydown),
   };
 }

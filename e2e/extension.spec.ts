@@ -87,10 +87,16 @@ test('built extension captures scoped mail, remembers keep decisions, and opens 
     await expect(review.getByRole('button', { name: 'To unsubscribe', exact: true }).first()).toBeEnabled();
     await expect(review.locator('li.focused h2')).toHaveText('Second Newsletter');
     await review.keyboard.press('k');
+    await expect(review.locator('li.focused h2')).toHaveText('Fourth Newsletter');
+    await review.keyboard.press('k');
+    await expect(review.locator('li.focused h2')).toHaveText('Fourth Newsletter');
+    await review.keyboard.press('j');
     await expect(review.locator('li.focused h2')).toHaveText('Second Newsletter');
     await review.keyboard.press('f');
     await expect(review.getByRole('button', { name: 'Open 1 marked unsubscribe pages' })).toBeEnabled();
-    await expect(review.locator('.senders h2')).toHaveText(['Second Newsletter', 'Third Newsletter', 'Fourth Newsletter']);
+    await expect(review.locator('.senders h2')).toHaveText(['Fourth Newsletter', 'Third Newsletter', 'Second Newsletter']);
+    await expect(review.getByRole('list', { name: 'To decide', exact: true }).locator('li')).toHaveCount(2);
+    await expect(review.getByRole('list', { name: 'Decided', exact: true }).locator('li')).toHaveCount(1);
     await expect(review.locator('li.marked h2')).toHaveText('Second Newsletter');
     await review.reload();
     await expect(review.locator('.senders h2')).toHaveText(['Fourth Newsletter', 'Third Newsletter', 'Second Newsletter']);

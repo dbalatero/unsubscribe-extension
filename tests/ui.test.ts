@@ -51,7 +51,7 @@ it('sorts every list by sender name, keeping marked pending senders in their own
   await flush();
   expect(rowNames()).toEqual(['alpha', 'Beta', 'apple', 'zebra']);
   key('f'); await flush();
-  expect(rowNames()).toEqual(['alpha', 'Beta', 'apple', 'zebra']);
+  expect(rowNames()).toEqual(['Beta', 'alpha', 'apple', 'zebra']);
   await resume();
   expect(rowNames()).toEqual(['Beta', 'alpha', 'apple', 'zebra']);
   click('Kept');
@@ -108,16 +108,16 @@ it('moves j/k focus without wrapping and allows mouse/native focus selection', a
     expect(legend?.getAttribute('aria-hidden')).toBe('true');
   }
 });
-it('marks with f, advances focus, dims in place and sorts marked senders last only on remount', async () => {
+it('marks with f, immediately moves to Decided and advances focus', async () => {
   const { root, refresh, service, destroy } = live([entry, second, third]);
   await flush();
   key('f');
   await flush();
-  expect(root.querySelector('li')?.classList.contains('marked')).toBe(true);
+  expect(root.querySelector('li.marked')?.classList.contains('marked')).toBe(true);
   expect(focused()?.dataset.key).toBe(second.key);
-  expect(rowNames()).toEqual(['Example Shop', 'Second', 'Third']);
+  expect(rowNames()).toEqual(['Second', 'Third', 'Example Shop']);
   await refresh();
-  expect(rowNames()).toEqual(['Example Shop', 'Second', 'Third']);
+  expect(rowNames()).toEqual(['Second', 'Third', 'Example Shop']);
   destroy(); root.remove();
   setup(vi.fn(service));
   await flush();
@@ -126,7 +126,23 @@ it('marks with f, advances focus, dims in place and sorts marked senders last on
   click('Undo mark');
   await flush();
   expect(document.querySelector('.marked')).toBeNull();
-  expect(rowNames()).toEqual(['Second', 'Third', 'Example Shop']);
+  expect(rowNames()).toEqual(['Example Shop', 'Second', 'Third']);
+});
+it('updates group counts and focuses the first decided sender after the last decision', async () => {
+  const { root } = live([entry, second, third]);
+  await flush();
+  expect(root.querySelectorAll('.group-count')[0].textContent).toBe('3');
+  expect(root.querySelectorAll('.group-count')[1].textContent).toBe('0');
+  key('j'); key('j'); key('f'); await flush();
+  expect(focused()?.dataset.key).toBe(entry.key);
+  key('f'); await flush();
+  expect(focused()?.dataset.key).toBe(second.key);
+  key('d'); await flush();
+  expect(focused()?.dataset.key).toBe(entry.key);
+  expect(document.activeElement).toBe(focused());
+  expect(root.querySelectorAll('.group-count')[0].textContent).toBe('0');
+  expect(root.querySelectorAll('.group-count')[1].textContent).toBe('2');
+  expect(rowNames()).toEqual(['Example Shop', 'Third']);
 });
 it('keeps with d, moves the sender to Kept and chooses a neighboring row', async () => {
   const { send } = live([entry, second]);
@@ -230,7 +246,7 @@ it('ignores stale refresh results and failures', async () => {
   reject(new Error('Stale')); await stale;
   expect(root.textContent).not.toContain('Stale');
 });
-it('defers storage refresh during a decision and adds new captures without reshuffling', async () => {
+it('defers storage refresh during a decision and sorts new captures', async () => {
   let resolve!: (reply: Reply) => void;
   const send = vi.fn().mockResolvedValueOnce({ ok: true, entries: [entry, second] }).mockImplementationOnce(() => new Promise<Reply>(yes => { resolve = yes; })).mockResolvedValue({ ok: true, entries: [{ ...entry, toUnsubscribe: true }, second, third] });
   const { refresh } = setup(send);
@@ -241,7 +257,7 @@ it('defers storage refresh during a decision and adds new captures without reshu
   resolve({ ok: true, entries: [{ ...entry, toUnsubscribe: true }, second] });
   await flush();
   expect(send).toHaveBeenCalledTimes(3);
-  expect(rowNames()).toEqual(['Example Shop', 'Second', 'Third']);
+  expect(rowNames()).toEqual(['Second', 'Third', 'Example Shop']);
   expect(focused()?.dataset.key).toBe(second.key);
 });
 it('keeps selection and marking unchanged when a decision fails', async () => {
@@ -260,7 +276,7 @@ it('reorders and focuses the first unmarked sender when returning to an existing
   await flush();
   key('f');
   await flush();
-  expect(rowNames()).toEqual(['Example Shop', 'Second']);
+  expect(rowNames()).toEqual(['Second', 'Example Shop']);
   await resume();
   expect(rowNames()).toEqual(['Second', 'Example Shop']);
   expect(focused()?.dataset.key).toBe(second.key);

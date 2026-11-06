@@ -16,7 +16,7 @@ Main prompt of what we are building is in @MAIN_PROMPT.md
 - Monday reminders are once-per-week catch-up reminders after 9 a.m. local time, with a persisted delivery marker. Preserve that behavior across sleep, restarts, and daylight-saving changes.
 
 - Capture the first source-email URL once; do not replace it on duplicate captures or invent one for legacy entries.
-- Review marks are persistent UI state on pending senders. Bulk-open only marked senders; preserve row order during triage and sort marked rows last when the user returns to the review tab.
+- Review marks are persistent UI state on pending senders. Bulk-open only marked senders. Show counted To decide and Decided sections, alphabetically sorted; marking moves a row immediately to Decided and focuses the next undecided sender (or the first Decided sender when none remain).
 
 # Development
 

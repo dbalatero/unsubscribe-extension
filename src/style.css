@@ -14,6 +14,9 @@ button:disabled { cursor: default; opacity: .55; }
 button[aria-pressed="true"] { background: #dfead9; border-color: #aabda1; }
 button:focus-visible, a:focus-visible { outline: 3px solid #708b52; outline-offset: 3px; }
 .senders { margin: 0; padding: 0; list-style: none; }
+.sender-group { margin-top: 24px; }
+.group-heading { display: flex; align-items: center; gap: 9px; font-size: 14px; color: #53705b; }
+.group-count { padding: 1px 8px; border-radius: 20px; background: #e4ecdf; font-size: 12px; font-variant-numeric: tabular-nums; }
 .sender { flex: 1; min-width: 0; }
 .sender p, .destination { font-size: 12px; overflow-wrap: anywhere; }
 .destination { color: #527444; text-underline-offset: 3px; }
