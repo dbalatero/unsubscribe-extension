@@ -41,6 +41,29 @@ it('supports name-only senders, unnamed senders and delayed text', () => {
   expect(extract(d, pageUrl)[0].name).toBe('news@example.test');
 });
 describe('unsubscribe links', () => {
+  it('recognizes the redacted missed footer even with an opaque tracking URL', () => {
+    const html = readFileSync('test-data/missed1.redacted.html', 'utf8');
+    expect(extract(doc(html), pageUrl)).toEqual([{ name: 'Example Newsletter', email: 'newsletter@example.test', url: 'https://links.example.test/v2/c/REDACTED' }]);
+  });
+  it('recognizes a nearby unsubscribe instruction through inline formatting', () => {
+    expect(link('<p>To <b>opt out</b> <span><a href="https://a.test/opaque">click here</a></span></p>')).toBe('https://a.test/opaque');
+    expect(link('<p>Unsubscribe <a href="https://a.test/opaque">here</a></p><a href="https://b.test">Unsubscribe</a>')).toBe('https://b.test/');
+  });
+  it.each([
+    '<a href="https://a.test">here</a>',
+    '<p>Unsubscribe</p><p><a href="https://a.test">here</a></p>',
+    '<p>Update your email preferences <a href="https://a.test">here</a></p>',
+    '<p>Unsubscribe instructions. Read our article <a href="https://a.test">here</a></p>',
+    '<p>Unsubscribe <a href="https://a.test">here</a> or shop <a href="https://b.test">here</a></p>',
+    `<p>${'x'.repeat(250)} unsubscribe <a href="https://a.test">here</a></p>`,
+    '<p><span hidden>Unsubscribe</span> <a href="https://a.test">here</a></p>',
+  ])('avoids ambiguous or unrelated contextual links: %s', html => {
+    expect(link(html)).toBeNull();
+  });
+  it('does not borrow unsubscribe context from outside the email body', () => {
+    const parsed = doc('<div>Unsubscribe <span id="body"><a href="https://a.test">here</a></span></div>');
+    expect(unsubscribeLink(parsed.querySelector('#body')!)).toBeNull();
+  });
   it('ranks explicit labels above URL hints and preference centers', () => {
     expect(link('<a href="https://a.test">Manage preferences</a><a href="https://b.test/unsubscribe">Click</a><a href="https://c.test/opaque">Unsubscribe</a><a href="https://d.test">Opt out</a>')).toBe('https://c.test/opaque');
     expect(link('<a href="https://a.test">Update preferences</a>')).toBe('https://a.test/');

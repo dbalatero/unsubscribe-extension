@@ -3,6 +3,18 @@ import { type Capture, isSupportedMessage, webUrl } from './model';
 const unsubscribe = /\bunsubscribe\b|\bopt[\s-]?out\b/i;
 const preferences = /\b(?:manage|update|email|subscription)\s+preferences\b|\bmanage\s+(?:your\s+)?subscriptions?\b/i;
 
+function contextualUnsubscribe(anchor: HTMLAnchorElement, body: Element): boolean {
+  if (!/^(?:click\s+)?here$/i.test(anchor.textContent!.trim())) return false;
+  const context = anchor.parentElement!.closest('p, td, div, li');
+  if (!context || !body.contains(context) || context.textContent!.length > 250 || context.querySelectorAll('a').length !== 1) return false;
+  const before = anchor.ownerDocument.createRange();
+  before.selectNodeContents(context);
+  before.setEndBefore(anchor);
+  const prefix = before.cloneContents();
+  prefix.querySelectorAll('[hidden], [aria-hidden="true"], blockquote, .u-quote').forEach(node => node.remove());
+  return /\b(?:unsubscribe|opt[\s-]?out)\s*$/i.test(prefix.textContent!);
+}
+
 // Prefer explicit unsubscribe text; opaque tracking URLs remain usable.
 export function unsubscribeLink(body: Element): string | null {
   let best: string | null = null;
@@ -12,7 +24,7 @@ export function unsubscribeLink(body: Element): string | null {
     const url = webUrl(anchor.getAttribute('href')!);
     if (!url) continue;
     const label = `${anchor.textContent} ${anchor.getAttribute('title') || ''} ${anchor.getAttribute('aria-label') || ''}`;
-    const score = unsubscribe.test(label) ? 3 : unsubscribe.test(url) ? 2 : preferences.test(label) ? 1 : 0;
+    const score = unsubscribe.test(label) ? 3 : unsubscribe.test(url) || contextualUnsubscribe(anchor, body) ? 2 : preferences.test(label) ? 1 : 0;
     if (score > bestScore) {
       best = url;
       bestScore = score;

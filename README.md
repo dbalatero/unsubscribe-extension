@@ -95,7 +95,7 @@ The committed `test-data/fastmail.html` and `test-data/allmail.html` are **redac
 
 ## Detection limits
 
-The extension captures HTTP(S) links in the rendered message body, prioritizing “Unsubscribe”/“Opt out,” then unsubscribe URL hints, then clearly labeled preference centers. It does not support mailto-only unsubscribe instructions, hidden raw email headers, or content Fastmail has not rendered yet. It waits for later DOM changes when a body is still loading.
+The extension captures HTTP(S) links in the rendered message body, prioritizing “Unsubscribe”/“Opt out,” then unsubscribe URL hints or contextual “here” links, then clearly labeled preference centers. A contextual link must say “here” or “click here,” immediately follow “unsubscribe” or “opt out,” and be the only link in a short surrounding block. This catches footers like “Update your email preferences or unsubscribe here” without treating every nearby link as an unsubscribe action. It does not support mailto-only unsubscribe instructions, hidden raw email headers, or content Fastmail has not rendered yet. It waits for later DOM changes when a body is still loading.
 
 Fastmail's built-in Unsubscribe control performs a server operation and may not expose a URL usable in this workflow. The collector therefore uses body links. Fastmail can change its DOM; the relevant adapter is `src/extract.ts`. The selectors were verified against the supplied HTML and Fastmail's public rendering code.
 
