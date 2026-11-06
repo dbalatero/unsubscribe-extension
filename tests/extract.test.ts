@@ -42,7 +42,7 @@ it('supports name-only senders, unnamed senders and delayed text', () => {
 });
 describe('unsubscribe links', () => {
   it('recognizes the redacted missed footer even with an opaque tracking URL', () => {
-    const html = readFileSync('test-data/missed1.redacted.html', 'utf8');
+    const html = readFileSync('test-data/missed1.html', 'utf8');
     expect(extract(doc(html), pageUrl)).toEqual([{ name: 'Example Newsletter', email: 'newsletter@example.test', url: 'https://links.example.test/v2/c/REDACTED' }]);
   });
   it('recognizes a nearby unsubscribe instruction through inline formatting', () => {
